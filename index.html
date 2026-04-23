@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PZQQET System Architektur & Repository Index</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Chosen Palette: Warm Neutrals mit sanften Blau- und Bernstein-Akzenten für technologische Klarheit -->
+    <!-- Application Structure Plan: Die Applikation nutzt ein Dashboard-Layout, um die trockene Dateiliste in ein interaktives Architekturerlebnis zu verwandeln. Es gibt eine Makro-Ansicht (Verteilung der Code-Basis) und eine Mikro-Ansicht (interaktiver Explorer für Module). Diese Struktur wurde gewählt, um Entwicklern und Analysten ein Top-Down-Verständnis der komplexen PZQQET-Architektur (Frontend vs. Engine vs. Master) zu ermöglichen, ohne sie mit einer endlosen Textliste zu überfordern. -->
+    <!-- Visualization & Content Choices: 1. Codebase Verteilung -> Goal: Compare -> Doughnut Chart (Chart.js) -> Hover für Details -> Zeigt das Verhältnis der Kernsysteme zueinander. 2. Modul-Komplexität -> Goal: Compare -> Bar Chart (Chart.js) -> Dynamisches Update bei Modulauswahl -> Zeigt die Dichte der Dateien pro Submodul. 3. Datei-Explorer -> Goal: Organize/Inform -> Dynamische HTML-Liste mit Filter -> Ermöglicht das schnelle Finden spezifischer Logik- oder UI-Dateien. Library: Chart.js und Vanilla JS. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <style>
+        :root {
+            --bg-color: #FAFAF9; /* Warm neutral 50 */
+            --text-main: #292524; /* Warm neutral 800 */
+            --accent-color: #D97706; /* Amber 600 */
+        }
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+        }
+        
+        /* Chart Container Styling Requirements */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+
+        /* Custom Scrollbar for file lists */
+        .file-list-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        .file-list-container::-webkit-scrollbar-track {
+            background: #F5F5F4;
+            border-radius: 4px;
+        }
+        .file-list-container::-webkit-scrollbar-thumb {
+            background: #D6D3D1;
+            border-radius: 4px;
+        }
+        
+        /* Interactivity Classes */
+        .module-card {
+            transition: all 0.2s ease-in-out;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+        .module-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        .module-card.active {
+            border-color: var(--accent-color);
+            background-color: #FFFBEB; /* Amber 50 */
+        }
+    </style>
+</head>
+<body class="antialiased min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b border-stone-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center space-x-3">
+                <span class="text-3xl" aria-hidden="true">🗂️</span>
+                <div>
+                    <h1 class="text-xl font-bold text-stone-900 tracking-tight">PZQQET Architecture</h1>
+                    <p class="text-xs text-stone-500 uppercase tracking-wider font-semibold">Repository Intelligence Dashboard</p>
+                </div>
+            </div>
+            <div class="text-sm font-medium text-amber-800 bg-amber-100 px-4 py-1.5 rounded-full shadow-sm">
+                System Index: 112 Dateien
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+        
+        <!-- Intro Section -->
+        <section class="mb-10">
+            <h2 class="text-2xl font-bold mb-3">Systemübersicht & Makro-Architektur</h2>
+            <p class="text-stone-600 max-w-4xl leading-relaxed">
+                Dieses Dashboard transformiert den statischen PZQQET Repository-Index in eine interaktive Informationsarchitektur. 
+                Es visualisiert die strukturelle Verteilung des Satoria-Netzwerks über seine vier Kernsäulen: <strong>Frontend (UI)</strong>, <strong>Engine (Logik)</strong>, <strong>Master (Spezifikationen)</strong> und <strong>Dokumentation</strong>. 
+                Nutzen Sie die Visualisierungen, um die Komplexität der einzelnen Systemkomponenten zu analysieren.
+            </p>
+        </section>
+
+        <!-- Dashboard Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
+            
+            <!-- Global Stats & Chart -->
+            <div class="lg:col-span-1 bg-white rounded-2xl shadow-sm border border-stone-200 p-6 flex flex-col">
+                <h3 class="text-lg font-bold mb-1 text-stone-800">Codebase Verteilung</h3>
+                <p class="text-sm text-stone-500 mb-6">Prozentualer Anteil der Dateien pro Systemdomäne.</p>
+                
+                <div class="chart-container flex-grow flex items-center justify-center">
+                    <canvas id="overviewChart"></canvas>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4 mt-6">
+                    <div class="bg-stone-50 p-3 rounded-lg border border-stone-100">
+                        <div class="text-xs text-stone-500 uppercase font-semibold">Logik-Dichte</div>
+                        <div class="text-lg font-bold text-stone-900">21.4%</div>
+                        <div class="text-xs text-stone-400">Core Engine</div>
+                    </div>
+                    <div class="bg-stone-50 p-3 rounded-lg border border-stone-100">
+                        <div class="text-xs text-stone-500 uppercase font-semibold">UI-Fokus</div>
+                        <div class="text-lg font-bold text-stone-900">57.1%</div>
+                        <div class="text-xs text-stone-400">Frontend Assets</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Interactive Explorer -->
+            <div class="lg:col-span-2 flex flex-col">
+                <h3 class="text-lg font-bold mb-4 text-stone-800">Modul-Explorer <span class="text-sm font-normal text-stone-500 ml-2">(Klicken zur Analyse)</span></h3>
+                
+                <!-- Pillar Cards -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <div class="module-card bg-white rounded-xl shadow-sm border border-stone-200 p-4 active" data-module="frontend" onclick="selectModule('frontend')">
+                        <div class="text-2xl mb-2">🖥️</div>
+                        <h4 class="font-bold text-stone-900">Frontend</h4>
+                        <p class="text-xs text-stone-500 mt-1">64 Dateien</p>
+                    </div>
+                    <div class="module-card bg-white rounded-xl shadow-sm border border-stone-200 p-4" data-module="engine" onclick="selectModule('engine')">
+                        <div class="text-2xl mb-2">⚙️</div>
+                        <h4 class="font-bold text-stone-900">Engine</h4>
+                        <p class="text-xs text-stone-500 mt-1">24 Dateien</p>
+                    </div>
+                    <div class="module-card bg-white rounded-xl shadow-sm border border-stone-200 p-4" data-module="master" onclick="selectModule('master')">
+                        <div class="text-2xl mb-2">🧠</div>
+                        <h4 class="font-bold text-stone-900">Master</h4>
+                        <p class="text-xs text-stone-500 mt-1">16 Dateien</p>
+                    </div>
+                    <div class="module-card bg-white rounded-xl shadow-sm border border-stone-200 p-4" data-module="docs" onclick="selectModule('docs')">
+                        <div class="text-2xl mb-2">📚</div>
+                        <h4 class="font-bold text-stone-900">Docs</h4>
+                        <p class="text-xs text-stone-500 mt-1">8 Dateien</p>
+                    </div>
+                </div>
+
+                <!-- Detail View Area -->
+                <div class="bg-white rounded-2xl shadow-sm border border-stone-200 p-6 flex-grow flex flex-col md:flex-row gap-6">
+                    
+                    <!-- Left: Submodule Chart -->
+                    <div class="w-full md:w-1/2 flex flex-col">
+                        <h4 class="font-bold text-stone-800 mb-1" id="detail-title">Submodul Analyse</h4>
+                        <p class="text-sm text-stone-500 mb-4" id="detail-desc">Komplexitätsverteilung innerhalb der Domäne.</p>
+                        <div class="chart-container">
+                            <canvas id="submoduleChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Right: File List -->
+                    <div class="w-full md:w-1/2 flex flex-col">
+                        <div class="flex justify-between items-center mb-4">
+                            <h4 class="font-bold text-stone-800">Dateistruktur</h4>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 flex items-center pl-2 text-stone-400 text-sm">🔍</span>
+                                <input type="text" id="file-search" placeholder="Filter..." class="pl-8 pr-3 py-1.5 border border-stone-200 rounded-lg text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 w-32 sm:w-48 transition-all">
+                            </div>
+                        </div>
+                        
+                        <div class="file-list-container flex-grow bg-stone-50 rounded-lg border border-stone-100 p-2 overflow-y-auto" style="height: 300px;">
+                            <ul id="file-list" class="space-y-1">
+                                <!-- Populated by JS -->
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="bg-stone-900 text-stone-400 py-8 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center sm:text-left flex flex-col sm:flex-row justify-between items-center">
+            <div>
+                <span class="text-stone-300 font-bold tracking-wider">PZQQET ARCHITECTURE</span>
+                <p class="text-xs mt-1">Information Architecture & Repository Index</p>
+            </div>
+            <div class="text-xs mt-4 sm:mt-0">
+                Basierend auf dem Master-Index (Q2 2026)
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // --- DATA STORE ---
+        // Hierarchische Struktur basierend auf dem Source Report
+        const repoData = {
+            frontend: {
+                title: "Frontend: UI & Styling",
+                desc: "Beinhaltet alle visuellen Komponenten, Layouts und CSS-Styles für das Satoria Netzwerk UI.",
+                color: '#3B82F6', // Blue
+                submodules: {
+                    "Buttons": ["btn-send.html", "btn-receive.html", "btn-swap.html", "btn-stake.html", "btn-unstake.html", "btn-start-mining.html", "btn-stop-mining.html", "btn-wrap.html", "btn-bridge.html", "btn-mint.html", "btn-burn.html", "btn-deposit.html", "btn-withdraw.html", "btn-euro.html", "btn-btc.html", "btn-ton.html", "btn-xp.html", "btn-joule.html", "btn-eccu.html"],
+                    "Cards": ["card-wallet-balance.html", "card-asset-euro.html", "card-asset-btc.html", "card-asset-ton.html", "card-asset-xp.html", "card-asset-joule.html", "card-asset-eccu.html", "card-transaction.html", "card-mining-status.html", "card-staking-status.html", "card-explorer-block.html", "card-explorer-tx.html"],
+                    "Modals": ["modal-login.html", "modal-register.html", "modal-send-confirm.html", "modal-receive-info.html", "modal-swap-confirm.html", "modal-stake-confirm.html", "modal-unstake-confirm.html", "modal-start-mining.html", "modal-stop-mining.html", "modal-wrap-confirm.html", "modal-bridge-confirm.html", "modal-mint-confirm.html", "modal-burn-confirm.html", "modal-deposit-confirm.html", "modal-withdraw-confirm.html", "modal-error.html", "modal-success.html", "modal-policy-change.html", "modal-risk-warning.html"],
+                    "Pages": ["home.html", "konto.html", "profil.html", "settings.html", "mining.html", "staking.html", "explorer.html", "konsole.html"],
+                    "Styles": ["variables.css", "layout.css", "theme.css", "typography.css", "components.css", "pages.css"]
+                }
+            },
+            engine: {
+                title: "Engine: Logik & Events",
+                desc: "Das Herzstück der Applikation. Steuert UI-Zustände, Kernlogik (Staking, Mining, Wallets) und probabilistische Events.",
+                color: '#D97706', // Amber
+                submodules: {
+                    "UI Controller": ["ComponentLoader.js", "PageRouter.js", "ModalController.js", "ButtonBinder.js", "StateRenderer.js"],
+                    "Core Logic": ["WalletLogic.js", "SendLogic.js", "ReceiveLogic.js", "SwapLogic.js", "StakeLogic.js", "UnstakeLogic.js", "MiningLogic.js", "MasterLogic.js", "AssetLogic.js", "TransparencyLogic.js", "DepositWithdrawLogic.js"],
+                    "Events": ["ClickEvents.js", "ModalEvents.js", "NavigationEvents.js", "MiningEvents.js", "StakingEvents.js", "MasterEvents.js", "AssetEvents.js", "ProbabilisticEngine.js"]
+                }
+            },
+            master: {
+                title: "Master: Flows & Specs",
+                desc: "Markdown-Spezifikationen, die die strengen Regeln und Abläufe für Wrap, Bridge, Mint und Burn definieren.",
+                color: '#10B981', // Emerald
+                submodules: {
+                    "Wrap": ["wrap-flow.md", "wrap-rules.md", "wrap-logic-spec.md", "wrap-ui-spec.md"],
+                    "Bridge": ["bridge-flow.md", "bridge-rules.md", "bridge-logic-spec.md", "bridge-ui-spec.md"],
+                    "Mint": ["mint-flow.md", "mint-rules.md", "mint-logic-spec.md", "mint-ui-spec.md"],
+                    "Burn": ["burn-flow.md", "burn-rules.md", "burn-logic-spec.md", "burn-ui-spec.md"]
+                }
+            },
+            docs: {
+                title: "Dokumentation",
+                desc: "Allgemeine Systemarchitektur, ISO-13616 Standards und Transparenzrichtlinien.",
+                color: '#6366F1', // Indigo
+                submodules: {
+                    "Archiv": ["architecture.md", "components.md", "engine.md", "events.md", "assets.md", "iso-13616.md", "transparency.md", "wallet-flow.md"]
+                }
+            }
+        };
+
+        // --- STATE MANAGEMENT ---
+        let currentModule = 'frontend';
+        let overviewChartInstance = null;
+        let submoduleChartInstance = null;
+        let currentFiles = [];
+
+        // --- GLOBAL CHART CONFIG ---
+        Chart.defaults.font.family = "'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
+        Chart.defaults.color = '#78716C'; // stone-500
+        Chart.defaults.plugins.tooltip.backgroundColor = 'rgba(28, 25, 23, 0.9)'; // stone-900
+        Chart.defaults.plugins.tooltip.padding = 10;
+        Chart.defaults.plugins.tooltip.cornerRadius = 6;
+
+        // --- INITIALIZATION ---
+        function init() {
+            renderOverviewChart();
+            selectModule(currentModule);
+            setupSearch();
+        }
+
+        // --- RENDER FUNCTIONS ---
+
+        function renderOverviewChart() {
+            const ctx = document.getElementById('overviewChart');
+            if (!ctx) return;
+
+            // Calculate totals
+            const labels = [];
+            const data = [];
+            const colors = [];
+
+            for (const key in repoData) {
+                labels.push(repoData[key].title.split(':')[0]); // Shorten label
+                colors.push(repoData[key].color);
+                
+                let count = 0;
+                for (const sub in repoData[key].submodules) {
+                    count += repoData[key].submodules[sub].length;
+                }
+                data.push(count);
+            }
+
+            overviewChartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: colors,
+                        borderWidth: 2,
+                        borderColor: '#ffffff',
+                        hoverOffset: 6
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    responsive: true,
+                    cutout: '70%',
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true,
+                                pointStyle: 'circle'
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return ` ${context.label}: ${context.raw} Dateien`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function selectModule(moduleId) {
+            currentModule = moduleId;
+            const data = repoData[moduleId];
+
+            // Update UI Styling for active card
+            document.querySelectorAll('.module-card').forEach(card => {
+                if (card.dataset.module === moduleId) {
+                    card.classList.add('active');
+                } else {
+                    card.classList.remove('active');
+                }
+            });
+
+            // Update Text Data
+            document.getElementById('detail-title').innerText = data.title;
+            document.getElementById('detail-desc').innerText = data.desc;
+
+            // Prepare Chart Data
+            const subLabels = Object.keys(data.submodules);
+            const subData = subLabels.map(sub => data.submodules[sub].length);
+
+            renderSubmoduleChart(subLabels, subData, data.color);
+            
+            // Prepare File List Data
+            currentFiles = [];
+            for (const sub in data.submodules) {
+                data.submodules[sub].forEach(file => {
+                    currentFiles.push({ name: file, path: `/repo/${moduleId}/${sub.toLowerCase().replace(/ /g, '-')}/${file}`, folder: sub });
+                });
+            }
+            
+            document.getElementById('file-search').value = ''; // Reset search
+            renderFileList(currentFiles);
+        }
+
+        function renderSubmoduleChart(labels, data, color) {
+            const ctx = document.getElementById('submoduleChart');
+            if (!ctx) return;
+
+            if (submoduleChartInstance) {
+                submoduleChartInstance.destroy();
+            }
+
+            submoduleChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Anzahl Dateien',
+                        data: data,
+                        backgroundColor: color + 'CC', // Add transparency
+                        borderColor: color,
+                        borderWidth: 1,
+                        borderRadius: 4,
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { precision: 0 },
+                            grid: {
+                                color: '#F5F5F4', // stone-100
+                                drawBorder: false
+                            }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: {
+                                maxRotation: 45,
+                                minRotation: 45
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderFileList(files) {
+            const listEl = document.getElementById('file-list');
+            listEl.innerHTML = '';
+
+            if (files.length === 0) {
+                listEl.innerHTML = '<li class="p-3 text-sm text-stone-500 italic">Keine Dateien gefunden.</li>';
+                return;
+            }
+
+            // Group by folder for visual clarity
+            let currentFolder = '';
+            
+            files.forEach(file => {
+                if (file.folder !== currentFolder) {
+                    currentFolder = file.folder;
+                    const header = document.createElement('li');
+                    header.className = 'px-3 pt-3 pb-1 text-xs font-bold text-stone-400 uppercase tracking-wider sticky top-0 bg-stone-50 z-10';
+                    header.innerText = `📁 ${currentFolder}`;
+                    listEl.appendChild(header);
+                }
+
+                const li = document.createElement('li');
+                li.className = 'px-3 py-2 bg-white border border-stone-200 rounded-md shadow-sm text-sm flex items-center group hover:border-amber-400 transition-colors cursor-default mb-1 mx-1';
+                
+                // Determine icon based on extension
+                let icon = '📄';
+                if (file.name.endsWith('.html')) icon = '🌐';
+                else if (file.name.endsWith('.css')) icon = '🎨';
+                else if (file.name.endsWith('.js')) icon = '⚡';
+                else if (file.name.endsWith('.md')) icon = '📝';
+
+                li.innerHTML = `
+                    <span class="mr-2 opacity-70">${icon}</span>
+                    <span class="font-medium text-stone-700 truncate flex-grow" title="${file.name}">${file.name}</span>
+                `;
+                listEl.appendChild(li);
+            });
+        }
+
+        function setupSearch() {
+            const searchInput = document.getElementById('file-search');
+            searchInput.addEventListener('input', (e) => {
+                const term = e.target.value.toLowerCase();
+                const filtered = currentFiles.filter(f => f.name.toLowerCase().includes(term) || f.folder.toLowerCase().includes(term));
+                renderFileList(filtered);
+            });
+        }
+
+        // Start
+        document.addEventListener('DOMContentLoaded', init);
+
+    </script>
+</body>
+</html>
